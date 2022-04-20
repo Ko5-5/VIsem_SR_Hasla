@@ -58,22 +58,26 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
-#define PWR_LED_Pin GPIO_PIN_13
-#define PWR_LED_GPIO_Port GPIOC
-#define Col3_Pin GPIO_PIN_1
-#define Col3_GPIO_Port GPIOB
-#define Col2_Pin GPIO_PIN_2
-#define Col2_GPIO_Port GPIOB
-#define Col1_Pin GPIO_PIN_10
-#define Col1_GPIO_Port GPIOB
-#define Row1_Pin GPIO_PIN_12
-#define Row1_GPIO_Port GPIOB
-#define Row2_Pin GPIO_PIN_13
-#define Row2_GPIO_Port GPIOB
-#define Row3_Pin GPIO_PIN_14
-#define Row3_GPIO_Port GPIOB
-#define ROT_BUT1_Pin GPIO_PIN_14
-#define ROT_BUT1_GPIO_Port GPIOA
+#define Row3_Pin GPIO_PIN_2
+#define Row3_GPIO_Port GPIOA
+#define Row2_Pin GPIO_PIN_3
+#define Row2_GPIO_Port GPIOA
+#define Row1_Pin GPIO_PIN_4
+#define Row1_GPIO_Port GPIOA
+#define Col1_Pin GPIO_PIN_5
+#define Col1_GPIO_Port GPIOA
+#define Col2_Pin GPIO_PIN_6
+#define Col2_GPIO_Port GPIOA
+#define Col3_Pin GPIO_PIN_7
+#define Col3_GPIO_Port GPIOA
+#define ROT_BUT1_Pin GPIO_PIN_1
+#define ROT_BUT1_GPIO_Port GPIOB
+#define CS_RTC_Pin GPIO_PIN_8
+#define CS_RTC_GPIO_Port GPIOA
+#define CS_FLASH_Pin GPIO_PIN_9
+#define CS_FLASH_GPIO_Port GPIOA
+#define PWR_LED_Pin GPIO_PIN_9
+#define PWR_LED_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
