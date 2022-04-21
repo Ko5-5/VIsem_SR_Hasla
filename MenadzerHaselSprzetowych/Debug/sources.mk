@@ -23,5 +23,10 @@ C_DEPS :=
 SUBDIRS := \
 Core/Src \
 Core/Startup \
+Drivers/CMSIS/Device/ST/STM32F4xx/Source/Templates \
 Drivers/STM32F4xx_HAL_Driver/Src \
+Middlewares/ST/STM32_USB_Device_Library/Class/CustomHID/Src \
+Middlewares/ST/STM32_USB_Device_Library/Core/Src \
+USB_DEVICE/App \
+USB_DEVICE/Target \
 
