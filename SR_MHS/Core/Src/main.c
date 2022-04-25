@@ -64,7 +64,9 @@ typedef struct
 
 /* USER CODE BEGIN PV */
 
-int i=0;
+uint32_t i=0;
+uint32_t counter = 0;
+int16_t count = 0;
 
 extern USBD_HandleTypeDef hUsbDeviceFS;
 
@@ -103,16 +105,15 @@ void OLED_page_test_sc(){
 void USB_HID_test(){
 	keyboardhid.MODIFIER = 0x02; // lewy Shift naciśniety
 	keyboardhid.KEYCODE1 = 0x04; // litera a nacisnieta
-	keyboardhid.KEYCODE1 = 0x05; // litera b nacisnieta
+	keyboardhid.KEYCODE2 = 0x05; // litera b nacisnieta
 	USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
 	HAL_Delay(50);
 	keyboardhid.MODIFIER = 0x00; // lewy Shift puszczony
 	keyboardhid.KEYCODE1 = 0x00; // litera a puszczona
-	keyboardhid.KEYCODE1 = 0x00; // litera b puszczona
+	keyboardhid.KEYCODE2 = 0x00; // litera b puszczona
 	USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
 	HAL_Delay(50);
 }
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -154,6 +155,7 @@ int main(void)
 	MX_USB_DEVICE_Init();
 	/* USER CODE BEGIN 2 */
 	SSD1306_Init();
+	HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_ALL);
 
 	/* USER CODE END 2 */
 
@@ -214,6 +216,11 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	counter = __HAL_TIM_GET_COUNTER(htim);
+	count = (int16_t)counter;
+}
 
 /* USER CODE END 4 */
 
