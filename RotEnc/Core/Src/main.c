@@ -70,6 +70,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 	uint8_t writeBuffer[8] = { 1, 2, 3, 4, 5, 6, 7, 8};
 	uint8_t readBuffer[8];
+	bool isInit = false;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -93,7 +94,7 @@ int main(void)
   MX_USART2_UART_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
-  W25qxx_Init();
+  isInit = W25qxx_Init();
   W25qxx_EraseSector(1);
   W25qxx_WriteSector(writeBuffer, 1, 0, 8);
   W25qxx_ReadSector(readBuffer, 1, 0, 8);

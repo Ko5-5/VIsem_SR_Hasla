@@ -8,7 +8,7 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include Drivers/STM32F0xx_HAL_Driver/Src/subdir.mk
+-include Drivers/STM32F3xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
 -include subdir.mk
@@ -30,24 +30,24 @@ endif
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-RotEnc.elf \
+ButtonMatrixInterrupts.elf \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-RotEnc.list \
+ButtonMatrixInterrupts.list \
 
 OBJCOPY_BIN += \
-RotEnc.bin \
+ButtonMatrixInterrupts.bin \
 
 
 # All Target
-all: RotEnc.elf secondary-outputs
+all: ButtonMatrixInterrupts.elf secondary-outputs
 
 # Tool invocations
-RotEnc.elf: $(OBJS) $(USER_OBJS) /home/hubert/MenadzerHasel/VIsem_SR_Hasla/RotEnc/STM32F030R8TX_FLASH.ld
-	arm-none-eabi-gcc -o "RotEnc.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"/home/hubert/MenadzerHasel/VIsem_SR_Hasla/RotEnc/STM32F030R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="RotEnc.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+ButtonMatrixInterrupts.elf: $(OBJS) $(USER_OBJS) /home/hubert/STM32CubeIDE/workspace_1.4.0/ButtonMatrixInterrupts/STM32F302R8TX_FLASH.ld
+	arm-none-eabi-gcc -o "ButtonMatrixInterrupts.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"/home/hubert/STM32CubeIDE/workspace_1.4.0/ButtonMatrixInterrupts/STM32F302R8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ButtonMatrixInterrupts.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -56,13 +56,13 @@ default.size.stdout: $(EXECUTABLES)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-RotEnc.list: $(EXECUTABLES)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "RotEnc.list"
+ButtonMatrixInterrupts.list: $(EXECUTABLES)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "ButtonMatrixInterrupts.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
-RotEnc.bin: $(EXECUTABLES)
-	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "RotEnc.bin"
+ButtonMatrixInterrupts.bin: $(EXECUTABLES)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "ButtonMatrixInterrupts.bin"
 	@echo 'Finished building: $@'
 	@echo ' '
 
