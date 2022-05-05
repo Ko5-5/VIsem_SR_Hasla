@@ -19,13 +19,10 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
-#include "w25qxx.h"
-#include "w25qxxConf.h"
-
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "w25qxx.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,7 +45,7 @@ SPI_HandleTypeDef hspi3;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-uint8_t writeBUffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+uint8_t writeBuffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 uint8_t readBuffer[8];
 /* USER CODE END PV */
 
@@ -98,8 +95,9 @@ int main(void)
   MX_SPI3_Init();
   /* USER CODE BEGIN 2 */
   W25qxx_Init();
+  W25qxx_EraseChip();
   W25qxx_WriteSector(writeBuffer, 1, 0, 8);
-  W25qxx_ReadSector(readBuffer, 1, 0, 0); //
+  W25qxx_ReadSector(readBuffer, 1, 0, 8); //
 
   /* USER CODE END 2 */
 
