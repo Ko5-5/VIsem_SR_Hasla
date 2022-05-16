@@ -27,7 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "w25qxx.h"
 #include "fonts.h"
 #include "ssd1306.h"
 #include "usbd_hid.h"
@@ -63,6 +63,18 @@ typedef struct
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+
+//----For-button-matrix-----
+GPIO_InitTypeDef GPIO_InitStructPrivate = {0};
+uint8_t keyPressed = 0;
+uint32_t previousMillis = 0;
+uint32_t currentMillis = 0;
+//--------------------------
+
+//----FLASH---Buffer-------
+uint8_t writeBuffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+uint8_t readBuffer[8];
+//-------------------------
 
 uint32_t i=0;
 uint32_t counter = 0;
@@ -157,6 +169,11 @@ int main(void)
 	SSD1306_Init();
 	HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_ALL);
 
+	 W25qxx_Init();
+	 W25qxx_EraseChip();
+	 W25qxx_WriteSector(writeBuffer, 1, 0, 8);
+	 W25qxx_ReadSector(readBuffer, 1, 0, 8); //
+
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -220,6 +237,64 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	counter = __HAL_TIM_GET_COUNTER(htim);
 	count = (int16_t)counter;
+}
+
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	currentMillis = HAL_GetTick();
+	if(currentMillis - previousMillis > 200)
+	{
+		GPIO_InitStructPrivate.Pin = ROW1_Pin|ROW2_Pin|ROW3_Pin;
+		GPIO_InitStructPrivate.Mode = GPIO_MODE_INPUT;
+		GPIO_InitStructPrivate.Pull = GPIO_PULLUP;
+		GPIO_InitStructPrivate.Speed = GPIO_SPEED_FREQ_LOW;
+		HAL_GPIO_Init(GPIOA, &GPIO_InitStructPrivate);
+
+		HAL_GPIO_WritePin(COL1_GPIO_Port,COL1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COL2_GPIO_Port,COL2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COL3_GPIO_Port,COL3_Pin, GPIO_PIN_SET);
+
+		if(GPIO_Pin == ROW1_Pin && HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin) == GPIO_PIN_RESET)
+			keyPressed = 1;
+		if(GPIO_Pin == ROW2_Pin && HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin) == GPIO_PIN_RESET)
+				keyPressed = 4;
+		if(GPIO_Pin == ROW3_Pin && HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin) == GPIO_PIN_RESET)
+				keyPressed = 7;
+
+		HAL_GPIO_WritePin(COL1_GPIO_Port,COL1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COL2_GPIO_Port,COL2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COL3_GPIO_Port,COL3_Pin, GPIO_PIN_SET);
+
+		if(GPIO_Pin == ROW1_Pin && HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin) == GPIO_PIN_RESET)
+				keyPressed = 2;
+		if(GPIO_Pin == ROW2_Pin && HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin) == GPIO_PIN_RESET)
+				keyPressed = 5;
+		if(GPIO_Pin == ROW3_Pin && HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin) == GPIO_PIN_RESET)
+				keyPressed = 8;
+
+		HAL_GPIO_WritePin(COL1_GPIO_Port,COL1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COL2_GPIO_Port,COL2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COL3_GPIO_Port,COL3_Pin, GPIO_PIN_RESET);
+
+		if(GPIO_Pin == ROW1_Pin && HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin) == GPIO_PIN_RESET)
+				keyPressed = 3;
+		if(GPIO_Pin == ROW2_Pin && HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin) == GPIO_PIN_RESET)
+				keyPressed = 6;
+		if(GPIO_Pin == ROW3_Pin && HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin) == GPIO_PIN_RESET)
+				keyPressed = 9;
+
+		HAL_GPIO_WritePin(COL1_GPIO_Port,COL1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COL2_GPIO_Port,COL2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COL3_GPIO_Port,COL3_Pin, GPIO_PIN_RESET);
+
+		GPIO_InitStructPrivate.Mode = GPIO_MODE_IT_FALLING;
+		GPIO_InitStructPrivate.Pull = GPIO_PULLUP;
+		HAL_GPIO_Init(GPIOA, &GPIO_InitStructPrivate);
+
+		previousMillis = currentMillis;
+
+	}
 }
 
 /* USER CODE END 4 */
