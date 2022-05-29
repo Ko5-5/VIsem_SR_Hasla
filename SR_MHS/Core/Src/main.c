@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; Copyright (c) 2022 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under BSD 3-Clause license,
+ * the "License"; You may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at:
+ *                        opensource.org/licenses/BSD-3-Clause
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -30,11 +30,25 @@
 
 #include "fonts.h"
 #include "ssd1306.h"
+#include "usbd_hid.h"
+#include "w25qxx.h"
 
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
+
+typedef struct
+{
+	uint8_t MODIFIER;
+	uint8_t RESERVED;
+	uint8_t KEYCODE1;
+	uint8_t KEYCODE2;
+	uint8_t KEYCODE3;
+	uint8_t KEYCODE4;
+	uint8_t KEYCODE5;
+	uint8_t KEYCODE6;
+} keyboardHID;
 
 /* USER CODE END PTD */
 
@@ -51,7 +65,34 @@
 
 /* USER CODE BEGIN PV */
 
-int i=0;
+//---- Macierz przycisków -----
+GPIO_InitTypeDef GPIO_InitStructPrivate = {0};
+volatile uint8_t keyPressed = 0;
+volatile uint8_t keyFlag = 0;
+volatile uint32_t previousMillis = 0;
+volatile uint32_t currentMillis = 0;
+//----
+
+//---- Pamięć FLASH ----
+uint8_t writeBuffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
+uint8_t readBuffer[8];
+
+char passwordWrite[256];
+char passwordRead[256];
+//----
+
+//--- Enkoder obrotowy ----
+uint32_t counter = 0;
+int16_t count = 0;
+int16_t old_count = 0;
+//----
+
+//---- USB Device
+extern USBD_HandleTypeDef hUsbDeviceFS;
+keyboardHID keyboardhid = {0,0,0,0,0,0,0,0};
+//----
+
+uint32_t pageNumber=0;
 
 /* USER CODE END PV */
 
@@ -74,14 +115,69 @@ void OLED_page_test_sc(){
 	SSD1306_DrawLine(0, 64, 128, 64, SSD1306_COLOR_WHITE);
 	SSD1306_DrawRectangle(100, 2, 27, 62, SSD1306_COLOR_WHITE);
 	SSD1306_GotoXY (110,25); // goto 10, 10
-	SSD1306_Putc ((char)(i+1+'0'), &Font_11x18, 1); // print Hello
+	SSD1306_Putc ((char)(keyPressed+'0'), &Font_11x18, 1); // print Hello
 	SSD1306_UpdateScreen(); // update screen
-	if(i==8)
-		i=0;
-	else
-		i++;
-	HAL_Delay(1000);
+	if(numberPage==8)
+		numberPage=0;
+	//else
+		//i++;
+	//HAL_Delay(1000);
 }
+
+void USB_HID_test(){
+	keyboardhid.MODIFIER = 0x02; // lewy Shift naciśniety
+	keyboardhid.KEYCODE1 = 0x04; // litera a nacisnieta
+	keyboardhid.KEYCODE2 = 0x05; // litera b nacisnieta
+	USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
+	HAL_Delay(50);
+	keyboardhid.MODIFIER = 0x00; // lewy Shift puszczony
+	keyboardhid.KEYCODE1 = 0x00; // litera a puszczona
+	keyboardhid.KEYCODE2 = 0x00; // litera b puszczona
+	USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
+	HAL_Delay(50);
+}
+
+/*
+void butMatPolling(){
+	HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(COL2_GPIO_Port, COL2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(COL3_GPIO_Port, COL3_Pin, GPIO_PIN_RESET);
+	if(HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin)){
+		keyPressed = 1;
+	}
+	else if(HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin)){
+		keyPressed = 4;
+	}
+	else if(HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin)){
+		keyPressed = 7;
+	}
+	HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(COL2_GPIO_Port, COL2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(COL3_GPIO_Port, COL3_Pin, GPIO_PIN_RESET);
+	if(HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin)){
+		keyPressed = 2;
+	}
+	else if(HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin)){
+		keyPressed = 5;
+	}
+	else if(HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin)){
+		keyPressed = 8;
+	}
+	HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(COL2_GPIO_Port, COL2_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(COL3_GPIO_Port, COL3_Pin, GPIO_PIN_SET);
+	if(HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin)){
+		keyPressed = 3;
+	}
+	else if(HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin)){
+		keyPressed = 6;
+	}
+	else if(HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin)){
+		keyPressed = 9;
+	}
+	HAL_Delay(200);
+}
+*/
 
 /* USER CODE END PFP */
 
@@ -123,19 +219,62 @@ int main(void)
   MX_TIM2_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-  SSD1306_Init();
+
+	//---- Inicjalizacja wyświetlacza OLED ----
+	SSD1306_Init();
+
+	//---- Inicjalizacja obsługi enkodera ----
+	HAL_TIM_Encoder_Start_IT(&htim2, TIM_CHANNEL_ALL);
+
+	//---- Inicjalizacja pamięci FLASH ----
+	W25qxx_Init();
+	W25qxx_EraseChip();
+	//W25qxx_WriteSector(writeBuffer, i, 0, 8);
+	//W25qxx_WriteSector((uint8_t)atoi(writeBuffer), i, 0, sizeof(writeBuffer)/sizeof(uint8_t));
+	//W25qxx_ReadSector(readBuffer, i, 0, 8); //
+
+	strcpy(passwordWrite, "123456", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 1, 0, 256);
+	strcpy(passwordWrite, "654321", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 2, 0, 256);
+	strcpy(passwordWrite, "HaloHalo", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 3, 0, 256);
+	strcpy(passwordWrite, "Cartoon-Duck-14-Coffee-Glvs", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 4, 0, 256);
+	strcpy(passwordWrite, "doubleclick", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 5, 0, 256);
+	strcpy(passwordWrite, "supersecure", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 6, 0, 256);
+	strcpy(passwordWrite, "Qwerty", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 7, 0, 256);
+	strcpy(passwordWrite, "DEFAULT", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 8, 0, 256);
+	strcpy(passwordWrite, "password", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 9, 0, 256);
+	strcpy(passwordWrite, "0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 10, 0, 256);
+
+
+	//---- Inicjalizacja obsługi macierzy przycisków
+	HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(COL2_GPIO_Port, COL2_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(COL3_GPIO_Port, COL3_Pin, GPIO_PIN_SET);
+
+	//---- LED oznaczający zakończenie setupu
+	HAL_GPIO_WritePin(PWR_LED_GPIO_Port, PWR_LED_Pin, 1);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-	  OLED_page_test_sc();
+	while (1)
+	{
+		OLED_page_test_sc();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+
+	}
   /* USER CODE END 3 */
 }
 
@@ -183,6 +322,83 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	counter = __HAL_TIM_GET_COUNTER(htim);
+	count = (int16_t)counter;
+	if(count - old_count > 0)
+	{
+		i++;
+	}else
+	{
+		i--;
+	}
+	old_count = count;
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	currentMillis = HAL_GetTick();
+	if(currentMillis - previousMillis > 200)
+	{
+		GPIO_InitStructPrivate.Pin = ROW1_Pin|ROW2_Pin|ROW3_Pin;
+		GPIO_InitStructPrivate.Mode = GPIO_MODE_INPUT;
+		GPIO_InitStructPrivate.Pull = GPIO_PULLDOWN;
+		GPIO_InitStructPrivate.Speed = GPIO_SPEED_FREQ_LOW;
+		HAL_GPIO_Init(GPIOA, &GPIO_InitStructPrivate);
+
+		HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COL2_GPIO_Port, COL2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COL3_GPIO_Port, COL3_Pin, GPIO_PIN_RESET);
+		if(HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin)){
+			keyPressed = 1;
+		}
+		else if(HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin)){
+			keyPressed = 4;
+		}
+		else if(HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin)){
+			keyPressed = 7;
+
+		}
+		HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COL2_GPIO_Port, COL2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COL3_GPIO_Port, COL3_Pin, GPIO_PIN_RESET);
+		if(HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin)){
+			keyPressed = 2;
+		}
+		else if(HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin)){
+			keyPressed = 5;
+		}
+		else if(HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin)){
+			keyPressed = 8;
+		}
+		HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COL2_GPIO_Port, COL2_Pin, GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(COL3_GPIO_Port, COL3_Pin, GPIO_PIN_SET);
+		if(HAL_GPIO_ReadPin(ROW1_GPIO_Port, ROW1_Pin)){
+			keyPressed = 3;
+		}
+		else if(HAL_GPIO_ReadPin(ROW2_GPIO_Port, ROW2_Pin)){
+			keyPressed = 6;
+		}
+		else if(HAL_GPIO_ReadPin(ROW3_GPIO_Port, ROW3_Pin)){
+			keyPressed = 9;
+		}
+
+		HAL_GPIO_WritePin(COL1_GPIO_Port,COL1_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COL2_GPIO_Port,COL2_Pin, GPIO_PIN_SET);
+		HAL_GPIO_WritePin(COL3_GPIO_Port,COL3_Pin, GPIO_PIN_SET);
+
+		GPIO_InitStructPrivate.Mode = GPIO_MODE_IT_RISING;
+		GPIO_InitStructPrivate.Pull = GPIO_PULLDOWN;
+		HAL_GPIO_Init(GPIOA, &GPIO_InitStructPrivate);
+
+		W25qxx_ReadSector(passwordRead, i*9+keyPressed, 0, 256); //
+
+		previousMillis = HAL_GetTick();
+	}
+
+}
 
 /* USER CODE END 4 */
 
@@ -193,7 +409,7 @@ void SystemClock_Config(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
+	/* User can add his own implementation to report the HAL error return state */
 
   /* USER CODE END Error_Handler_Debug */
 }
@@ -209,7 +425,7 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
+	/* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
