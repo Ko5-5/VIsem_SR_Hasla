@@ -94,7 +94,7 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 keyboardHID keyboardhid = {0,0,0,0,0,0,0,0};
 //----
 
-uint32_t pageNumber=0;
+volatile uint32_t pageNumber = 0;
 
 /* USER CODE END PV */
 
@@ -102,7 +102,7 @@ uint32_t pageNumber=0;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
-void OLED_page_test_sc(){
+void OLED_page_sc(){
 	// OLED screen test
 	SSD1306_Fill(SSD1306_COLOR_BLACK);
 	SSD1306_GotoXY (4,6); // goto 10, 10
@@ -117,7 +117,7 @@ void OLED_page_test_sc(){
 	SSD1306_DrawLine(0, 64, 128, 64, SSD1306_COLOR_WHITE);
 	SSD1306_DrawRectangle(100, 2, 27, 62, SSD1306_COLOR_WHITE);
 	SSD1306_GotoXY (110,25); // goto 10, 10
-	SSD1306_Putc ((char)(keyPressed+'0'), &Font_11x18, 1); // print Hello
+	SSD1306_Putc ((char)(pageNumber+'0'), &Font_11x18, 1); // print Hello
 	SSD1306_UpdateScreen(); // update screen
 	HAL_Delay(1000);
 }
@@ -176,19 +176,19 @@ void butMatPolling(){
 }
 
 void sendUSB(uint8_t *pass){
-	uint8_t * i_pass = pass;
-	while(*i_pass != '\0'){
+	while(*pass != '\0'){
 		for(int i=0; i<KEYS_NUM; i++){
-			if(*i_pass == keys[i].value){
+			if(*pass == keys[i].value){
 				keyboardhid.KEYCODE1 = keys[i].hex_num;
 				USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
 				HAL_Delay(50);
 				keyboardhid.KEYCODE1 = 0x00;
 				USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
 				HAL_Delay(50);
+				pass++;
 				break;
 			}
-			else if(*i_pass == keys[i].shiftValue){
+			else if(*pass == keys[i].shiftValue){
 				keyboardhid.MODIFIER = 0x02; // lewy Shift naciśniety
 				keyboardhid.KEYCODE1 = keys[i].hex_num;
 				USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
@@ -197,9 +197,9 @@ void sendUSB(uint8_t *pass){
 				keyboardhid.KEYCODE1 = 0x00;
 				USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
 				HAL_Delay(50);
+				pass++;
 				break;
 			}
-
 		}
 	}
 }
@@ -253,32 +253,30 @@ int main(void)
 
 	//---- Inicjalizacja pamięci FLASH ----
 	W25qxx_Init();
-	W25qxx_EraseChip();
+	// W25qxx_EraseChip();
 	// W25qxx_WriteSector(writeBuffer, 1, 0, 8);
 	// W25qxx_ReadSector(readBuffer, 1, 0, 8);
 
-	memcpy(passwordWrite, (uint8_t *)"123456\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 1, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"654321\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 2, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"HaloHalo\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 3, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"Cartoon-Duck-14-Coffee-Glvs\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 4, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"doubleclick\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 5, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"supersecure\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 6, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"Qwerty\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 7, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"DEFAULT\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 8, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"password\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 9, 0, 256);
-	memcpy(passwordWrite, (uint8_t *)"0\0", sizeof(passwordWrite));
-	W25qxx_WriteSector(passwordWrite, 10, 0, 256);
-
-	W25qxx_ReadSector(passwordRead, 1, 0, 256);
+	/*memcpy(passwordWrite, "123456\0", sizeof(passwordWrite)/sizeof(char));
+	W25qxx_WritePage(passwordWrite, 1, 0, 255);
+	memcpy(passwordWrite, "654321\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 2, 0, 256);
+	memcpy(passwordWrite, "HaloHalo\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 3, 0, 256);
+	memcpy(passwordWrite, "Cartoon-Duck-14-Coffee-Glvs\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 4, 0, 256);
+	memcpy(passwordWrite, "doubleclick\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 5, 0, 256);
+	memcpy(passwordWrite, "supersecure\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 6, 0, 256);
+	memcpy(passwordWrite, "Qwerty\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 7, 0, 256);
+	memcpy(passwordWrite, "DEFAULT\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 8, 0, 256);
+	memcpy(passwordWrite, "password\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 9, 0, 256);
+	memcpy(passwordWrite, "0\0", sizeof(passwordWrite));
+	W25qxx_WritePage(passwordWrite, 10, 0, 256);*/
 
 	//---- Inicjalizacja obsługi macierzy przycisków
 	HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_SET);
@@ -294,11 +292,15 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		OLED_page_test_sc();
+		OLED_page_sc();
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-
+		if(keyFlag){
+			W25qxx_ReadPage(passwordRead, pageNumber*9+keyPressed, 0, 255);
+			sendUSB(passwordRead);
+			keyFlag = 0;
+		}
 	}
 	/* USER CODE END 3 */
 }
@@ -353,13 +355,13 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 	count = (int16_t)counter;
 	if(count - old_count > 5)
 	{
-		if(pageNumber < 9)
-			pageNumber++;
+		if(pageNumber > 0)
+			pageNumber--;
 		old_count = count;
 	}else if(count - old_count < -5)
 	{
-		if(pageNumber > 0)
-			pageNumber--;
+		if(pageNumber < 9)
+			pageNumber++;
 		old_count = count;
 	}
 
@@ -422,8 +424,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		GPIO_InitStructPrivate.Pull = GPIO_PULLDOWN;
 		HAL_GPIO_Init(GPIOA, &GPIO_InitStructPrivate);
 
-		W25qxx_ReadSector(passwordRead, pageNumber*9+keyPressed, 0, 256);
 
+		keyFlag = 1;
 		previousMillis = HAL_GetTick();
 	}
 

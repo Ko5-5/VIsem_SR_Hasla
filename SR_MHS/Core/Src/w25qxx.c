@@ -128,8 +128,9 @@ void W25qxx_WaitForWriteEnd(void)
 bool W25qxx_Init(void)
 {
 	w25qxx.Lock = 1;
-	while (HAL_GetTick() < 100)
-		W25qxx_Delay(1);
+	//while (HAL_GetTick() < 100)
+	//	W25qxx_Delay(1);
+	W25qxx_Delay(100);
 	HAL_GPIO_WritePin(_W25QXX_CS_GPIO, _W25QXX_CS_PIN, GPIO_PIN_SET);
 	W25qxx_Delay(100);
 	uint32_t id;
