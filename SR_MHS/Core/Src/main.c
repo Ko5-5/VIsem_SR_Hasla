@@ -68,6 +68,14 @@ typedef struct
 
 /* USER CODE BEGIN PV */
 
+//---- Status urządzenia ----
+uint8_t deviceState = 0; // 0 - login ; 1 - normal ; 99 - block
+uint8_t loginTries = 5;
+uint8_t login[4] = {1, 2, 3, 4};
+uint8_t loginBuff[4];
+uint8_t loginCounter = 0;
+//----
+
 //---- Macierz przycisków -----
 GPIO_InitTypeDef GPIO_InitStructPrivate = {0};
 volatile uint8_t keyPressed = 0;
@@ -89,12 +97,14 @@ int16_t count = 0;
 int16_t old_count = 0;
 //----
 
-//---- USB Device
+//---- USB Device ----
 extern USBD_HandleTypeDef hUsbDeviceFS;
 keyboardHID keyboardhid = {0,0,0,0,0,0,0,0};
 //----
 
+//---- Wyświetlacz OLED ---
 volatile uint32_t pageNumber = 0;
+//----
 
 /* USER CODE END PV */
 
@@ -103,23 +113,61 @@ void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
 void OLED_page_sc(){
-	// OLED screen test
-	SSD1306_Fill(SSD1306_COLOR_BLACK);
-	SSD1306_GotoXY (4,6); // goto 10, 10
-	SSD1306_Puts ("--MHS--", &Font_11x18, 1); // print Hello
-	SSD1306_GotoXY (4,25); // goto 10, 10
-	SSD1306_Puts ("PAGE", &Font_11x18, 1); // print Hello
-	SSD1306_GotoXY (4,44); // goto 10, 10
-	SSD1306_Puts ("NUMBER:", &Font_11x18, 1); // print Hello
-	SSD1306_DrawLine(0, 1, 128, 1, SSD1306_COLOR_WHITE);
-	SSD1306_DrawLine(0, 0, 0, 64, SSD1306_COLOR_WHITE);
-	SSD1306_DrawLine(128, 0, 128, 64, SSD1306_COLOR_WHITE);
-	SSD1306_DrawLine(0, 64, 128, 64, SSD1306_COLOR_WHITE);
-	SSD1306_DrawRectangle(100, 2, 27, 62, SSD1306_COLOR_WHITE);
-	SSD1306_GotoXY (110,25); // goto 10, 10
-	SSD1306_Putc ((char)(pageNumber+'0'), &Font_11x18, 1); // print Hello
-	SSD1306_UpdateScreen(); // update screen
-	HAL_Delay(1000);
+	static uint32_t lastRefresh = 0;
+	if(HAL_GetTick() - lastRefresh > 1000){
+		SSD1306_Fill(SSD1306_COLOR_BLACK);
+		SSD1306_GotoXY (4,6);
+		SSD1306_Puts ("--MHS--", &Font_11x18, 1);
+		SSD1306_GotoXY (4,25);
+		SSD1306_Puts ("PAGE", &Font_11x18, 1);
+		SSD1306_GotoXY (4,44);
+		SSD1306_Puts ("NUMBER:", &Font_11x18, 1);
+		SSD1306_DrawLine(0, 1, 128, 1, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(0, 0, 0, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(128, 0, 128, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(0, 64, 128, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawRectangle(100, 2, 27, 62, SSD1306_COLOR_WHITE);
+		SSD1306_GotoXY (110,25);
+		SSD1306_Putc ((char)(pageNumber+'0'), &Font_11x18, 1);
+		SSD1306_UpdateScreen();
+	}
+}
+
+void OLED_login_sc(){
+	static uint32_t lastRefresh = 0;
+	if(HAL_GetTick() - lastRefresh > 1000){
+		SSD1306_Fill(SSD1306_COLOR_BLACK);
+		SSD1306_GotoXY (4,6);
+		SSD1306_Puts ("-ENTER-", &Font_11x18, 1);
+		SSD1306_GotoXY (4,25);
+		SSD1306_Puts ("PASSWORD", &Font_11x18, 1);
+		SSD1306_GotoXY (4,44);
+		SSD1306_Puts ("TRIES:", &Font_11x18, 1);
+		SSD1306_DrawLine(0, 1, 128, 1, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(0, 0, 0, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(128, 0, 128, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(0, 64, 128, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawRectangle(100, 2, 27, 62, SSD1306_COLOR_WHITE);
+		SSD1306_GotoXY (110,25);
+		SSD1306_Putc ((char)(loginTries+'0'), &Font_11x18, 1);
+		SSD1306_UpdateScreen();
+	}
+}
+
+void OLED_block_sc(){
+	static uint32_t lastRefresh = 0;
+	if(HAL_GetTick() - lastRefresh > 1000){
+		SSD1306_Fill(SSD1306_COLOR_BLACK);
+		SSD1306_GotoXY (4,6);
+		SSD1306_Puts ("- DEVICE  -", &Font_11x18, 1);
+		SSD1306_GotoXY (4,25);
+		SSD1306_Puts ("- BLOCKED -", &Font_11x18, 1);
+		SSD1306_DrawLine(0, 1, 128, 1, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(0, 0, 0, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(128, 0, 128, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(0, 64, 128, 64, SSD1306_COLOR_WHITE);
+		SSD1306_UpdateScreen();
+	}
 }
 
 void USB_HID_test(){
@@ -292,15 +340,41 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		OLED_page_sc();
+		if(deviceState == 0){
+			OLED_login_sc();
+			if(keyFlag){
+				loginBuff[loginCounter] = keyPressed;
+				loginCounter++;
+				keyFlag = 0;
+			}
+			if(loginCounter == 4){
+				if(login[0] == loginBuff[0] && login[1] == loginBuff[1] && login[2] == loginBuff[2] && login[3] == loginBuff[3]){
+					deviceState = 1;
+				}else{
+					loginCounter = 0;
+					loginTries--;
+				}
+			}
+			if(loginTries == 0){
+				deviceState = 99;
+			}
+		}
+		else if(deviceState == 99){
+			OLED_block_sc();
+		}
+		else{
+			OLED_page_sc();
+			if(keyFlag){
+				W25qxx_ReadPage(passwordRead, pageNumber*9+keyPressed, 0, 255);
+				sendUSB(passwordRead);
+				keyFlag = 0;
+			}
+		}
+
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-		if(keyFlag){
-			W25qxx_ReadPage(passwordRead, pageNumber*9+keyPressed, 0, 255);
-			sendUSB(passwordRead);
-			keyFlag = 0;
-		}
+
 	}
 	/* USER CODE END 3 */
 }
