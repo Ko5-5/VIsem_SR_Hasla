@@ -28,10 +28,13 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+#include <stdio.h>
+#include <string.h>
 #include "fonts.h"
 #include "ssd1306.h"
 #include "usbd_hid.h"
 #include "w25qxx.h"
+#include "keyboard_keys.h"
 
 /* USER CODE END Includes */
 
@@ -76,11 +79,14 @@ volatile uint32_t currentMillis = 0;
 //---- Pamięć FLASH ----
 uint8_t writeBuffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 uint8_t readBuffer[8];
+uint8_t passwordWrite[256];
+uint8_t passwordRead[256];
 //----
 
 //--- Enkoder obrotowy ----
 uint32_t counter = 0;
 int16_t count = 0;
+int16_t old_count = 0;
 //----
 
 //---- USB Device
@@ -88,7 +94,7 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
 keyboardHID keyboardhid = {0,0,0,0,0,0,0,0};
 //----
 
-uint32_t i=0;
+uint32_t pageNumber=0;
 
 /* USER CODE END PV */
 
@@ -113,10 +119,6 @@ void OLED_page_test_sc(){
 	SSD1306_GotoXY (110,25); // goto 10, 10
 	SSD1306_Putc ((char)(keyPressed+'0'), &Font_11x18, 1); // print Hello
 	SSD1306_UpdateScreen(); // update screen
-	if(i==8)
-		i=0;
-	else
-		i++;
 	HAL_Delay(1000);
 }
 
@@ -173,9 +175,30 @@ void butMatPolling(){
 	HAL_Delay(200);
 }
 
-void sendUSB(char *pass){
-	while(*pass != '\0'){
-		if(elem < 6){
+void sendUSB(uint8_t *pass){
+	uint8_t * i_pass = pass;
+	while(*i_pass != '\0'){
+		for(int i=0; i<KEYS_NUM; i++){
+			if(*i_pass == keys[i].value){
+				keyboardhid.KEYCODE1 = keys[i].hex_num;
+				USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
+				HAL_Delay(50);
+				keyboardhid.KEYCODE1 = 0x00;
+				USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
+				HAL_Delay(50);
+				break;
+			}
+			else if(*i_pass == keys[i].shiftValue){
+				keyboardhid.MODIFIER = 0x02; // lewy Shift naciśniety
+				keyboardhid.KEYCODE1 = keys[i].hex_num;
+				USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
+				HAL_Delay(50);
+				keyboardhid.MODIFIER = 0x00; // lewy Shift puszczony
+				keyboardhid.KEYCODE1 = 0x00;
+				USBD_HID_SendReport(&hUsbDeviceFS, (uint8_t*)&keyboardhid, sizeof(keyboardhid));
+				HAL_Delay(50);
+				break;
+			}
 
 		}
 	}
@@ -231,8 +254,31 @@ int main(void)
 	//---- Inicjalizacja pamięci FLASH ----
 	W25qxx_Init();
 	W25qxx_EraseChip();
-	W25qxx_WriteSector(writeBuffer, 1, 0, 8);
-	W25qxx_ReadSector(readBuffer, 1, 0, 8); //
+	// W25qxx_WriteSector(writeBuffer, 1, 0, 8);
+	// W25qxx_ReadSector(readBuffer, 1, 0, 8);
+
+	memcpy(passwordWrite, (uint8_t *)"123456\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 1, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"654321\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 2, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"HaloHalo\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 3, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"Cartoon-Duck-14-Coffee-Glvs\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 4, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"doubleclick\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 5, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"supersecure\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 6, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"Qwerty\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 7, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"DEFAULT\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 8, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"password\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 9, 0, 256);
+	memcpy(passwordWrite, (uint8_t *)"0\0", sizeof(passwordWrite));
+	W25qxx_WriteSector(passwordWrite, 10, 0, 256);
+
+	W25qxx_ReadSector(passwordRead, 1, 0, 256);
 
 	//---- Inicjalizacja obsługi macierzy przycisków
 	HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_SET);
@@ -305,6 +351,18 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 {
 	counter = __HAL_TIM_GET_COUNTER(htim);
 	count = (int16_t)counter;
+	if(count - old_count > 5)
+	{
+		if(pageNumber < 9)
+			pageNumber++;
+		old_count = count;
+	}else if(count - old_count < -5)
+	{
+		if(pageNumber > 0)
+			pageNumber--;
+		old_count = count;
+	}
+
 }
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
@@ -363,6 +421,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		GPIO_InitStructPrivate.Mode = GPIO_MODE_IT_RISING;
 		GPIO_InitStructPrivate.Pull = GPIO_PULLDOWN;
 		HAL_GPIO_Init(GPIOA, &GPIO_InitStructPrivate);
+
+		W25qxx_ReadSector(passwordRead, pageNumber*9+keyPressed, 0, 256);
 
 		previousMillis = HAL_GetTick();
 	}

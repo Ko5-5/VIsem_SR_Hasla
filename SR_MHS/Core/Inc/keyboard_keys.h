@@ -8,6 +8,8 @@
 #ifndef INC_KEYBOARD_KEYS_H_
 #define INC_KEYBOARD_KEYS_H_
 
+#define KEYS_NUM 47
+
 typedef struct{
 	uint8_t hex_num;
 	uint8_t value;
