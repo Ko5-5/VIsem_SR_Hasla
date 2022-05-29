@@ -89,6 +89,7 @@ uint8_t writeBuffer[8] = {0, 1, 2, 3, 4, 5, 6, 7};
 uint8_t readBuffer[8];
 uint8_t passwordWrite[256];
 uint8_t passwordRead[256];
+uint8_t cipherKey[8] = "hubertus";
 //----
 
 //--- Enkoder obrotowy ----
@@ -112,16 +113,12 @@ volatile uint32_t pageNumber = 0;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
-char* XORCipher(char* string, char* key, int length)
+void XORCipher(char* string, char* key)
 {
-	char* output = (char*)malloc(sizeof(char)*length);
-
-	for(int i = 0; i < length; ++i)
+	for(int i = 0; i < strlen(string); i++)
 	{
-		output[i] = string[i] ^ key[i % 8];
+		string[i] = string[i] ^ key[i % 8];
 	}
-
-	return output;
 }
 
 void OLED_page_sc(){
@@ -313,11 +310,12 @@ int main(void)
 
 	//---- Inicjalizacja pamięci FLASH ----
 	W25qxx_Init();
-	// W25qxx_EraseChip();
+	W25qxx_EraseChip();
 	// W25qxx_WriteSector(writeBuffer, 1, 0, 8);
 	// W25qxx_ReadSector(readBuffer, 1, 0, 8);
 
-	/*memcpy(passwordWrite, "123456\0", sizeof(passwordWrite)/sizeof(char));
+	memcpy(passwordWrite, "123456\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 1, 0, 255);
 	memcpy(passwordWrite, "654321\0", sizeof(passwordWrite));
 	W25qxx_WritePage(passwordWrite, 2, 0, 256);
@@ -336,7 +334,7 @@ int main(void)
 	memcpy(passwordWrite, "password\0", sizeof(passwordWrite));
 	W25qxx_WritePage(passwordWrite, 9, 0, 256);
 	memcpy(passwordWrite, "0\0", sizeof(passwordWrite));
-	W25qxx_WritePage(passwordWrite, 10, 0, 256);*/
+	W25qxx_WritePage(passwordWrite, 10, 0, 256);
 
 	//---- Inicjalizacja obsługi macierzy przycisków
 	HAL_GPIO_WritePin(COL1_GPIO_Port, COL1_Pin, GPIO_PIN_SET);
@@ -378,6 +376,7 @@ int main(void)
 			OLED_page_sc();
 			if(keyFlag){
 				W25qxx_ReadPage(passwordRead, pageNumber*9+keyPressed, 0, 255);
+				XORCipher(passwordRead, cipherKey);
 				sendUSB(passwordRead);
 				keyFlag = 0;
 			}
@@ -456,7 +455,7 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
 	currentMillis = HAL_GetTick();
-	if(currentMillis - previousMillis > 200)
+	if(currentMillis - previousMillis > 300)
 	{
 		GPIO_InitStructPrivate.Pin = ROW1_Pin|ROW2_Pin|ROW3_Pin;
 		GPIO_InitStructPrivate.Mode = GPIO_MODE_INPUT;
