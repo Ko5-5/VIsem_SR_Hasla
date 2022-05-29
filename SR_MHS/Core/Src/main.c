@@ -102,6 +102,18 @@ volatile uint32_t pageNumber = 0;
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
 
+char* XORCipher(char* string, char* key, int length)
+{
+	char* output = (char*)malloc(sizeof(char)*length);
+
+	for(int i = 0; i < length; ++i)
+	{
+		output[i] = string[i] ^ key[i % 8];
+	}
+
+	return output;
+}
+
 void OLED_page_sc(){
 	// OLED screen test
 	SSD1306_Fill(SSD1306_COLOR_BLACK);
