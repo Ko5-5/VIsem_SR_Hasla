@@ -318,22 +318,31 @@ int main(void)
 	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 1, 0, 255);
 	memcpy(passwordWrite, "654321\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 2, 0, 256);
 	memcpy(passwordWrite, "HaloHalo\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 3, 0, 256);
 	memcpy(passwordWrite, "Cartoon-Duck-14-Coffee-Glvs\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 4, 0, 256);
 	memcpy(passwordWrite, "doubleclick\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 5, 0, 256);
 	memcpy(passwordWrite, "supersecure\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 6, 0, 256);
 	memcpy(passwordWrite, "Qwerty\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 7, 0, 256);
 	memcpy(passwordWrite, "DEFAULT\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 8, 0, 256);
 	memcpy(passwordWrite, "password\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 9, 0, 256);
 	memcpy(passwordWrite, "0\0", sizeof(passwordWrite));
+	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 10, 0, 256);
 
 	//---- Inicjalizacja obsługi macierzy przycisków
