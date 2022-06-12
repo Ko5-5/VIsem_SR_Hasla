@@ -51,9 +51,11 @@
 
 /* USER CODE BEGIN PRIVATE_TYPES */
 extern uint8_t ReceivedData[64]; // Tablica przechowujaca odebrane dane
+extern uint8_t ReceivedLength;
+extern uint8_t ReceivedIter;
+extern uint8_t ReceivedPassNr;
 extern uint8_t ReceivedDataFlag;
-extern uint8_t cipherKey[8];
-extern void XORCipher(char* string, char* key);
+
 /* USER CODE END PRIVATE_TYPES */
 
 /**
@@ -267,10 +269,28 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
 	/* USER CODE BEGIN 6 */
 	USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
 	USBD_CDC_ReceivePacket(&hUsbDeviceFS);
-	XORCipher(Buf, cipherKey);
-	W25qxx_WritePage(Buf, 10, 0, 256);
-	XORCipher(Buf, cipherKey);
-	CDC_Transmit_FS(Buf, *Len);
+
+	if(ReceivedIter == 0){
+		sscanf(&Buf[0], "%d", &ReceivedLength);
+		ReceivedIter++;
+	}else if(ReceivedIter == 1){
+		ReceivedIter++;
+	}else if(ReceivedIter == 2){
+		sscanf(&Buf[0], "%d", &ReceivedPassNr);
+		ReceivedIter++;
+	}else if(ReceivedIter == 3){
+		ReceivedIter++;
+	}else{
+		ReceivedData[ReceivedIter-4] = Buf[0];
+		ReceivedIter++;
+		if(ReceivedIter == ReceivedLength+4){
+			ReceivedData[ReceivedIter-4] = '\0';
+			ReceivedDataFlag = 1;
+			ReceivedIter = 0;
+		}
+
+	}
+
 	return (USBD_OK);
 	/* USER CODE END 6 */
 }
