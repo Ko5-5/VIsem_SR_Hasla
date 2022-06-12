@@ -35,6 +35,7 @@
 #include "usbd_hid.h"
 #include "w25qxx.h"
 #include "keyboard_keys.h"
+#include "usbd_cdc.h"
 
 /* USER CODE END Includes */
 
@@ -74,6 +75,7 @@ uint8_t loginTries = 5;
 uint8_t login[4] = {1, 2, 3, 4};
 uint8_t loginBuff[4];
 uint8_t loginCounter = 0;
+uint8_t deviceFLAG = 0;
 //----
 
 //---- Macierz przycisków -----
@@ -101,6 +103,15 @@ int16_t old_count = 0;
 //---- USB Device ----
 extern USBD_HandleTypeDef hUsbDeviceFS;
 keyboardHID keyboardhid = {0,0,0,0,0,0,0,0};
+//----
+
+//---- USB Vitural COM ----
+uint8_t DataToSend[40]; // Tablica zawierajaca dane do wyslania
+uint8_t MessageCounter = 0; // Licznik wyslanych wiadomosci
+uint8_t MessageLength = 0; // Zawiera dlugosc wysylanej wiadomosci
+
+uint8_t ReceivedData[64]; // Tablica przechowujaca odebrane dane
+uint8_t ReceivedDataFlag = 0; // Flaga informujaca o odebraniu danych
 //----
 
 //---- Wyświetlacz OLED ---
@@ -299,7 +310,14 @@ int main(void)
 	MX_I2C1_Init();
 	MX_SPI3_Init();
 	MX_TIM2_Init();
-	MX_USB_DEVICE_Init();
+	if(HAL_GPIO_ReadPin(ROT_BUT_GPIO_Port, ROT_BUT_Pin)){
+		MX_USB_DEVICE_Init(0);
+		deviceFLAG = 0;
+	}else{
+		MX_USB_DEVICE_Init(1);
+		deviceFLAG = 1;
+		MX_CRC_Init();
+	}
 	/* USER CODE BEGIN 2 */
 
 	//---- Inicjalizacja wyświetlacza OLED ----
@@ -310,7 +328,7 @@ int main(void)
 
 	//---- Inicjalizacja pamięci FLASH ----
 	W25qxx_Init();
-	W25qxx_EraseChip();
+	// W25qxx_EraseChip();
 	// W25qxx_WriteSector(writeBuffer, 1, 0, 8);
 	// W25qxx_ReadSector(readBuffer, 1, 0, 8);
 
@@ -359,35 +377,47 @@ int main(void)
 	/* USER CODE BEGIN WHILE */
 	while (1)
 	{
-		if(deviceState == 0){
-			OLED_login_sc();
-			if(keyFlag){
-				loginBuff[loginCounter] = keyPressed;
-				loginCounter++;
-				keyFlag = 0;
+		if(deviceFLAG){
+			uint8_t Text[] = "Hello\r\n";
+			CDC_Transmit_FS(Text,6); /*when commented the port is recognized*/
+			if(ReceivedDataFlag == 1){
+				ReceivedDataFlag = 0;
+
+				MessageLength = sprintf(DataToSend, "Odebrano: %s\n\r", ReceivedData);
+				CDC_Transmit_FS(DataToSend, MessageLength);
 			}
-			if(loginCounter == 4){
-				if(login[0] == loginBuff[0] && login[1] == loginBuff[1] && login[2] == loginBuff[2] && login[3] == loginBuff[3]){
-					deviceState = 1;
-				}else{
-					loginCounter = 0;
-					loginTries--;
+			HAL_Delay(1000);
+		}else{
+			if(deviceState == 0){
+				OLED_login_sc();
+				if(keyFlag){
+					loginBuff[loginCounter] = keyPressed;
+					loginCounter++;
+					keyFlag = 0;
+				}
+				if(loginCounter == 4){
+					if(login[0] == loginBuff[0] && login[1] == loginBuff[1] && login[2] == loginBuff[2] && login[3] == loginBuff[3]){
+						deviceState = 1;
+					}else{
+						loginCounter = 0;
+						loginTries--;
+					}
+				}
+				if(loginTries == 0){
+					deviceState = 99;
 				}
 			}
-			if(loginTries == 0){
-				deviceState = 99;
+			else if(deviceState == 99){
+				OLED_block_sc();
 			}
-		}
-		else if(deviceState == 99){
-			OLED_block_sc();
-		}
-		else{
-			OLED_page_sc();
-			if(keyFlag){
-				W25qxx_ReadPage(passwordRead, pageNumber*9+keyPressed, 0, 255);
-				XORCipher(passwordRead, cipherKey);
-				sendUSB(passwordRead);
-				keyFlag = 0;
+			else{
+				OLED_page_sc();
+				if(keyFlag){
+					W25qxx_ReadPage(passwordRead, pageNumber*9+keyPressed, 0, 255);
+					XORCipher(passwordRead, cipherKey);
+					sendUSB(passwordRead);
+					keyFlag = 0;
+				}
 			}
 		}
 
