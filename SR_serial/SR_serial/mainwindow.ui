@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>436</width>
-    <height>343</height>
+    <width>479</width>
+    <height>226</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,27 +17,31 @@
    <widget class="QWidget" name="gridLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>50</x>
+      <x>30</x>
       <y>10</y>
-      <width>301</width>
-      <height>224</height>
+      <width>421</width>
+      <height>101</height>
      </rect>
     </property>
     <layout class="QGridLayout" name="gridLayout">
      <item row="3" column="0">
       <widget class="QLabel" name="passwordLabel">
        <property name="text">
-        <string>Input hasło:</string>
+        <string>Hasło do zapisania:</string>
        </property>
       </widget>
      </item>
      <item row="3" column="1">
-      <widget class="QTextEdit" name="passwordEdit"/>
+      <widget class="QTextEdit" name="passwordEdit">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="przyciskLabel">
        <property name="text">
-        <string>Przycisk:</string>
+        <string>Numer przycisku:</string>
        </property>
       </widget>
      </item>
@@ -47,22 +51,26 @@
      <item row="0" column="0">
       <widget class="QLabel" name="inSerialPortLabel">
        <property name="text">
-        <string>Input serial port:</string>
+        <string>Port seryjny:</string>
        </property>
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QTextEdit" name="serialEdit"/>
+      <widget class="QTextEdit" name="serialEdit">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>
    <widget class="QPushButton" name="sendButton">
     <property name="geometry">
      <rect>
-      <x>170</x>
-      <y>250</y>
-      <width>89</width>
-      <height>25</height>
+      <x>30</x>
+      <y>130</y>
+      <width>421</width>
+      <height>31</height>
      </rect>
     </property>
     <property name="text">
@@ -75,8 +83,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>436</width>
-     <height>22</height>
+     <width>479</width>
+     <height>24</height>
     </rect>
    </property>
   </widget>
