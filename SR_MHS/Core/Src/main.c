@@ -311,7 +311,6 @@ int main(void)
 	//---- Inicjalizacja pamięci FLASH ----
 	W25qxx_Init();
 	//---- Wypełnianie pamięci domyślnymi hasłami ----
-	/*
 	W25qxx_EraseChip();
 	memcpy(passwordWrite, "123456\0", sizeof(passwordWrite));
 	XORCipher(passwordWrite, cipherKey);
@@ -340,6 +339,7 @@ int main(void)
 	memcpy(passwordWrite, "password\0", sizeof(passwordWrite));
 	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 9, 0, 64);
+	/*
 	memcpy(passwordWrite, "0\0", sizeof(passwordWrite));
 	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 10, 0, 64);
@@ -367,11 +367,11 @@ int main(void)
 				//MessageLength = sprintf(DataToSend, "Odebrano: %s\n\r", ReceivedData);
 				//CDC_Transmit_FS(DataToSend, MessageLength);
 				uint8_t text[64];
-				sscanf(&ReceivedData[0], "%d", &ReceivedPassNr);
-				for(int i = 0; i<strlen(ReceivedData)-2; i++){
-					text[i] = ReceivedData[i+2];
+				ReceivedPassNr = (ReceivedData[0] - '0') * 10 + (ReceivedData[1] - '0');
+				for(int i = 0; i<strlen(ReceivedData)-3; i++){
+					text[i] = ReceivedData[i+3];
 				}
-				text[strlen(ReceivedData)-2] = '\0';
+				text[strlen(ReceivedData)-3] = '\0';
 				memcpy(passwordWrite, text, sizeof(passwordWrite));
 				XORCipher(passwordWrite, cipherKey);
 				W25qxx_WritePage(passwordWrite, (uint32_t)ReceivedPassNr, 0, 64);
