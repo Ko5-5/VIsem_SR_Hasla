@@ -5,8 +5,9 @@
 #-------------------------------------------------
 
 QT       += core gui serialport
+QT       += widgets
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, X): QT += widgets
 
 TARGET = SR_serial
 TEMPLATE = app
