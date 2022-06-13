@@ -48,8 +48,13 @@ void MainWindow::on_sendButton_clicked()
     buttonString = ui->buttonEdit->toPlainText();
     passwordString = ui->passwordEdit->toPlainText();
     //QString temp = QString::number(passwordString.length()) + ":" + buttonString + ":" + passwordString;
-    QString temp = buttonString + ":" + passwordString;
-    if(temp.length() > 2){
+    QString temp;
+    if(buttonString.toInt() < 10){
+        temp = "0" + buttonString + ":" + passwordString;
+    }else{
+        temp = buttonString + ":" + passwordString;
+    }
+    if(temp.length() > 2 && buttonString.toInt() < 82 && buttonString.toInt() > 0){
         qDebug() << temp << endl;
         serial->write(temp.toLatin1());
     }
