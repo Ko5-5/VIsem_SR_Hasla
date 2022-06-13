@@ -311,7 +311,8 @@ int main(void)
 	//---- Inicjalizacja pamięci FLASH ----
 	W25qxx_Init();
 	//---- Wypełnianie pamięci domyślnymi hasłami ----
-	W25qxx_EraseChip();
+	//W25qxx_EraseChip();
+	/*
 	memcpy(passwordWrite, "123456\0", sizeof(passwordWrite));
 	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 1, 0, 64);
@@ -339,6 +340,7 @@ int main(void)
 	memcpy(passwordWrite, "password\0", sizeof(passwordWrite));
 	XORCipher(passwordWrite, cipherKey);
 	W25qxx_WritePage(passwordWrite, 9, 0, 64);
+	*/
 	/*
 	memcpy(passwordWrite, "0\0", sizeof(passwordWrite));
 	XORCipher(passwordWrite, cipherKey);
