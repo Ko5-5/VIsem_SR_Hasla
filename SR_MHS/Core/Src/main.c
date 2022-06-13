@@ -137,6 +137,25 @@ void XORCipher(uint8_t* string, uint8_t* key)
 	}
 }
 
+/*! \brief Funkcja wyświetlająca ekran trybu wpisywania
+ * 	Funkcja wyświetlająca ekran trybu wpisywania na wyświetlaczu OLED przy pomocy połączenia I2C
+ */
+void OLED_write_sc(){
+	static uint32_t lastRefresh = 0;
+	if(HAL_GetTick() - lastRefresh > 1000){
+		SSD1306_Fill(SSD1306_COLOR_BLACK);
+		SSD1306_GotoXY (4,6);
+		SSD1306_Puts ("-- WRITE --", &Font_11x18, 1);
+		SSD1306_GotoXY (4,25);
+		SSD1306_Puts ("-- MODE  --", &Font_11x18, 1);
+		SSD1306_DrawLine(0, 1, 128, 1, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(0, 0, 0, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(128, 0, 128, 64, SSD1306_COLOR_WHITE);
+		SSD1306_DrawLine(0, 64, 128, 64, SSD1306_COLOR_WHITE);
+		SSD1306_UpdateScreen();
+	}
+}
+
 /*! \brief Funkcja wyświetlająca ekran wyboru strony
  * 	Funkcja wyświetlająca ekran wyboru strony na wyświetlaczu OLED przy pomocy połączenia I2C
  */
@@ -340,6 +359,7 @@ int main(void)
 	while (1)
 	{
 		if(deviceFLAG){  // Tryb urządzenia Virtual COM do zapisywania przesłanych haseł
+			OLED_write_sc();
 			uint8_t Text[] = "WRITE MODE -> len:nr:password\r\n";
 			CDC_Transmit_FS(Text,strlen(Text)); /*when commented the port is recognized*/
 			if(ReceivedDataFlag == 1){
@@ -347,9 +367,11 @@ int main(void)
 				//MessageLength = sprintf(DataToSend, "Odebrano: %s\n\r", ReceivedData);
 				//CDC_Transmit_FS(DataToSend, MessageLength);
 				uint8_t text[64];
-				for(int i = 0; i<ReceivedLength+1; i++){
-					text[i] = ReceivedData[i];
+				sscanf(&ReceivedData[0], "%d", &ReceivedPassNr);
+				for(int i = 0; i<strlen(ReceivedData)-2; i++){
+					text[i] = ReceivedData[i+2];
 				}
+				text[strlen(ReceivedData)-2] = '\0';
 				memcpy(passwordWrite, text, sizeof(passwordWrite));
 				XORCipher(passwordWrite, cipherKey);
 				W25qxx_WritePage(passwordWrite, (uint32_t)ReceivedPassNr, 0, 64);
